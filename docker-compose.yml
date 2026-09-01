@@ -15,8 +15,10 @@ services:
 
   builder:
     image: ghcr.io/nekosunevr/msoy:${MSOY_IMAGE_TAG:-latest}
+    pull_policy: always
     build:
       context: .
+    entrypoint: ["/usr/local/bin/msoy-entrypoint"]
     depends_on:
       postgres:
         condition: service_healthy
