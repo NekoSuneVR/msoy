@@ -10,6 +10,8 @@ NENYA_REPO="https://github.com/threerings/nenya.git"
 NENYA_COMMIT="62c3c2c31a239aecb3028501a81bace2c8fee8f9"
 WHIRLED_API_REPO="https://github.com/greyhavens/whirled-api.git"
 WHIRLED_API_COMMIT="98c15e4d33b4340ce0e9b84b0aca1dd1a38f8508"
+LWJGL_26_URL="https://raw.githubusercontent.com/GeoJosh/geospace-repo/master/org/lwjgl/lwjgl/2.6/lwjgl-2.6.jar"
+LWJGL_26_SHA1="02b8c8c496d5f858a3ba72793e419fb66ae624e8"
 
 install_alias_from_central() {
   local group_id="$1"
@@ -40,6 +42,36 @@ install_alias_from_central() {
     -Dversion="$target_version" \
     -Dpackaging=jar \
     -DgeneratePom=true
+}
+
+install_legacy_lwjgl() {
+  local target_jar="${M2_REPO}/org/lwjgl/lwjgl/2.6/lwjgl-2.6.jar"
+  if [[ -f "$target_jar" ]]; then
+    return
+  fi
+
+  echo "Restoring org.lwjgl:lwjgl:2.6 from checksum-pinned archival Maven copy..."
+  local workdir jar actual_sha1
+  workdir="$(mktemp -d)"
+  jar="$workdir/lwjgl-2.6.jar"
+
+  curl -fsSL "$LWJGL_26_URL" -o "$jar"
+  actual_sha1="$(sha1sum "$jar" | awk '{print $1}')"
+  if [[ "$actual_sha1" != "$LWJGL_26_SHA1" ]]; then
+    echo "LWJGL 2.6 checksum mismatch: expected ${LWJGL_26_SHA1}, got ${actual_sha1}" >&2
+    rm -rf "$workdir"
+    exit 3
+  fi
+
+  mvn -q install:install-file \
+    -Dfile="$jar" \
+    -DgroupId=org.lwjgl \
+    -DartifactId=lwjgl \
+    -Dversion=2.6 \
+    -Dpackaging=jar \
+    -DgeneratePom=true
+
+  rm -rf "$workdir"
 }
 
 install_orth() {
@@ -80,20 +112,38 @@ install_nenya() {
   fi
 
   echo "Building com.threerings:nenya:1.1 from pinned exact release source..."
-  local workdir
+  local workdir pom patched_pom
   workdir="$(mktemp -d)"
+  pom="$workdir/nenya/pom.xml"
+  patched_pom="$workdir/nenya/pom.xml.patched"
 
   git clone -q --no-checkout "$NENYA_REPO" "$workdir/nenya"
   git -C "$workdir/nenya" checkout -q "$NENYA_COMMIT"
 
   # Nenya 1.1 used Maven's old dynamic RELEASE plugin version. Modern Maven
   # rejects that marker while parsing the POM, before it can compile anything.
-  # Pin the period-correct AntRun 1.6 release in the temporary checkout only;
-  # the historical source and MSOY's own POM remain unchanged.
-  sed -i '/<artifactId>maven-antrun-plugin<\/artifactId>/{n;s#<version>RELEASE</version>#<version>1.6</version>#;}' \
-    "$workdir/nenya/pom.xml"
+  # Pin the period-correct AntRun 1.6 release in the temporary checkout only.
+  sed -i '/<artifactId>maven-antrun-plugin<\/artifactId>/{n;s#<version>RELEASE</version>#<version>1.6</version>#;}' "$pom"
 
-  mvn -q -f "$workdir/nenya/pom.xml" -DskipTests install
+  # lwjgl_util was declared optional but Nenya has no org.lwjgl.util imports.
+  # Its historical repository is gone, so omit only that unused optional block.
+  awk '
+    BEGIN { in_dep=0; block="" }
+    /<dependency>/ && !in_dep { in_dep=1; block=$0 ORS; next }
+    in_dep {
+      block=block $0 ORS
+      if (/<\/dependency>/) {
+        if (block !~ /<artifactId>lwjgl_util<\/artifactId>/) printf "%s", block
+        in_dep=0
+        block=""
+      }
+      next
+    }
+    { print }
+  ' "$pom" > "$patched_pom"
+  mv "$patched_pom" "$pom"
+
+  mvn -q -f "$pom" -DskipTests install
 
   if [[ ! -f "$target_jar" ]]; then
     echo "Nenya source build completed without producing ${target_jar}" >&2
@@ -129,6 +179,9 @@ install_whirled_code() {
 
   rm -rf "$workdir"
 }
+
+# Restore the exact binary coordinate Nenya needs before its old POM is resolved.
+install_legacy_lwjgl
 
 # The exact coordinates in MSOY's old POM disappeared with the original private
 # Three Rings Maven repository. Vilya 1.4 is from the same legacy API generation
