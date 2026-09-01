@@ -72,7 +72,8 @@ public class LaunchConfig
      */
     public String getGameURL (String path)
     {
-        String port = (httpPort == 80) ? "" : (":" + httpPort);
-        return "http://" + gameServer + port + path;
+        boolean secure = (httpPort == 443);
+        String port = (httpPort == 80 || secure) ? "" : (":" + httpPort);
+        return (secure ? "https://" : "http://") + gameServer + port + path;
     }
 }
