@@ -15,16 +15,23 @@ RUN apt-get update \
        gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
+# Keep the container entrypoint outside /opt/msoy. docker-compose bind-mounts
+# the checkout over /opt/msoy, so anything needed to start the container must
+# live outside that mount point.
+COPY docker/entrypoint.sh /usr/local/bin/msoy-entrypoint
+RUN chmod 0755 /usr/local/bin/msoy-entrypoint
+
 WORKDIR /opt/msoy
 COPY . .
 
-RUN chmod +x bin/* docker/entrypoint.sh \
+RUN chmod +x bin/* \
     && mkdir -p etc/test pages/media log run dist \
     && cp -n etc/build_settings.properties.dist etc/test/build_settings.properties \
     && cp -n etc/msoy-server.conf.dist etc/test/msoy-server.conf \
     && cp -n etc/msoy-server.properties.dist etc/test/msoy-server.properties \
     && cp -n etc/burl-server.conf.dist etc/test/burl-server.conf \
-    && cp -n etc/burl-server.properties.dist etc/test/burl-server.properties
+    && cp -n etc/burl-server.properties.dist etc/test/burl-server.properties \
+    && test -x /usr/local/bin/msoy-entrypoint
 
 ENV MSOY_BUILD_TARGET=compile \
     MSOY_SERVER_URL=http://localhost:8080/ \
@@ -43,5 +50,5 @@ ENV MSOY_BUILD_TARGET=compile \
 
 EXPOSE 8080 47623 47624
 
-ENTRYPOINT ["/opt/msoy/docker/entrypoint.sh"]
+ENTRYPOINT ["/usr/local/bin/msoy-entrypoint"]
 CMD ["build"]
