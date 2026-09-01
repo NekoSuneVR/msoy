@@ -17,7 +17,9 @@ public class Csrf extends Sprite
         var loader :URLLoader = new URLLoader();
         var request :URLRequest = new URLRequest();
 
-        request.url = "http://www.whirled.com/usersvc";
+        // Keep the CSRF test bound to the deployment that served this SWF instead
+        // of posting to the long-dead public whirled.com production service.
+        request.url = "/usersvc";
         request.method = "POST";
 
         Command.bind(loader, Event.COMPLETE, function () :void {
@@ -27,5 +29,4 @@ public class Csrf extends Sprite
 
         loader.load(request);
     }
-}
 }
