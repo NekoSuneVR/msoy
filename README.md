@@ -9,7 +9,7 @@ it from destruction.
 
 It would take many tens of thousands of dollars to pay someone with the sufficient level of
 expertise to clean it up and make it easy for normal humans to hack on and improve. We don't have
-the time or money to do that, so you're stuck with what you see here. A complex, tempermental
+the time or money to do that, so you're stuck with what you see here. A complex, temperamental
 project that uses half a dozen major technologies to do hundreds of barely related things.
 
 If you're not **very** proficient in [Java], [JDBC] and [servlets], reasonably proficient in
@@ -18,9 +18,34 @@ then you're going to have a long hard road in front of you.
 
 Good luck!
 
+## Docker / GHCR
+
+A repaired container build is available for the Java mSOY server and GWT web client. GitHub Actions
+builds `linux/amd64` and `linux/arm64` images and publishes them to:
+
+```text
+ghcr.io/nekosunevr/msoy
+```
+
+For a local instance:
+
+```bash
+cp .env.example .env
+docker compose pull
+docker compose up -d
+```
+
+The Compose stack includes PostgreSQL and persistent database/media volumes. See [DOCKER.md] for
+build arguments, custom-host deployments, ports, configuration and the legacy-integration notes.
+
+The Docker image deliberately does not depend on the obsolete Flex/Flash/Thane portion of
+`distall`. It builds the Java server plus the GWT browser application, which is the maintainable
+server path on current container infrastructure.
+
 ## Building
 
-The code is built with the [Ant] build tool. The main build target is `distall`, invoked like so:
+The historical code is built with the [Ant] build tool. The original full build target is `distall`,
+invoked like so:
 
 ```
 ant distall
@@ -50,6 +75,12 @@ Main targets:
 Default target: compile
 ```
 
+For the container build, use:
+
+```bash
+docker build -t msoy:local .
+```
+
 ## Running a test instance
 
 It is possible to run a test instance of the Whirled server on a developer machine. A variety of
@@ -77,9 +108,12 @@ and edited to reflect the configuration of your local instance. The `.dist` conf
 comments explaining each of the configurations. The most important configuration is for a local
 database server (either MySQL or Postgres) which the Whirled server will use to store data.
 
-Assuming you have successfully run `ant distall` to build the server and client, and you have
-put the configuration files in place, and your database server is properly configured and running,
-you can run the local Whirled instance like so:
+The Docker build performs this developer-config bootstrap automatically using safe defaults and
+runtime environment overrides; it does not require local credentials to be checked into Git.
+
+Assuming you have successfully run `ant distall` to build the historical server and clients, and you
+have put the configuration files in place, and your database server is properly configured and
+running, you can run the local Whirled instance like so:
 
 ```
 ./bin/msoyserver
@@ -104,20 +138,21 @@ see something like the following, then you're in good shape:
 2015-09-02 09:36:44,923 INFO Logger: Server listening on 0.0.0.0/0.0.0.0:4010.
 ```
 
-You can then navigate to http://localhost:8080/ to access your local Whirled instance.
+You can then navigate to `http://localhost:8080/` to access your local Whirled instance.
 
 ## License
 
 The Whirled code is released under the BSD License. See the [LICENSE] file for details.
 
-[ActionScript]: http://www.adobe.com/devnet/actionscript.html
-[Ant]: http://ant.apache.org/
-[Flex]: http://www.adobe.com/devnet/flex.html
-[GWT]: http://www.gwtproject.org/
-[JDBC]: http://docs.oracle.com/javase/7/docs/technotes/guides/jdbc/
-[Java]: http://docs.oracle.com/javase/7/docs/
-[LICENSE]: https://github.com/greyhavens/msoy/blob/master/LICENSE
+[ActionScript]: https://www.adobe.com/devnet/actionscript.html
+[Ant]: https://ant.apache.org/
+[DOCKER.md]: DOCKER.md
+[Flex]: https://www.adobe.com/devnet/flex.html
+[GWT]: https://www.gwtproject.org/
+[JDBC]: https://docs.oracle.com/javase/7/docs/technotes/guides/jdbc/
+[Java]: https://docs.oracle.com/javase/7/docs/
+[LICENSE]: LICENSE
 [MySQL]: https://www.mysql.com/
-[Postgres]: http://www.postgresql.org/
-[Whirled]: http://whirled.com/
-[servlets]: http://www.oracle.com/technetwork/java/index-jsp-135475.html
+[Postgres]: https://www.postgresql.org/
+[Whirled]: https://github.com/greyhavens/msoy
+[servlets]: https://www.oracle.com/technetwork/java/index-jsp-135475.html
