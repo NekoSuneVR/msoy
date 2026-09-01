@@ -46,6 +46,31 @@ install_alias_from_central() {
     -DgeneratePom=true
 }
 
+install_maven_ant_tasks() {
+  local version="2.1.1"
+  local repo_jar="${M2_REPO}/org/apache/maven/maven-ant-tasks/${version}/maven-ant-tasks-${version}.jar"
+  local support_dir="${HOME}/.m2/ant-support"
+  local support_jar="${support_dir}/maven-ant-tasks-${version}.jar"
+
+  if [[ -s "$support_jar" ]]; then
+    return
+  fi
+
+  echo "Pre-seeding Apache Maven Ant Tasks ${version} for Nenya's legacy Ant bootstrap..."
+  if [[ ! -s "$repo_jar" ]]; then
+    mvn -q -Dtransitive=false dependency:get \
+      -Dartifact="org.apache.maven:maven-ant-tasks:${version}"
+  fi
+
+  if [[ ! -s "$repo_jar" ]]; then
+    echo "Maven Ant Tasks resolved without producing ${repo_jar}" >&2
+    exit 3
+  fi
+
+  mkdir -p "$support_dir"
+  cp "$repo_jar" "$support_jar"
+}
+
 install_legacy_lwjgl() {
   local target_jar="${M2_REPO}/org/lwjgl/lwjgl/2.6/lwjgl-2.6.jar"
   if [[ -f "$target_jar" ]]; then
@@ -206,6 +231,7 @@ install_whirled_code() {
 # Restore the exact binary coordinates Nenya needs before its old POM is resolved.
 install_legacy_lwjgl
 install_legacy_lwjgl_util
+install_maven_ant_tasks
 
 # The exact coordinates in MSOY's old POM disappeared with the original private
 # Three Rings Maven repository. Vilya 1.4 is from the same legacy API generation
