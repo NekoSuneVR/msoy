@@ -39,6 +39,23 @@ MEDIA_URL=${MSOY_MEDIA_URL:-${PUBLIC_URL}media/}
 STATIC_MEDIA_URL=${MSOY_STATIC_MEDIA_URL:-${MEDIA_URL}static/}
 BILLING_URL=${MSOY_BILLING_URL:-${PUBLIC_URL}billing/}
 
+# Replace stale production-domain SEO files with URLs for this deployment.
+cat > pages/robots.txt <<EOF
+User-agent: *
+Allow: /
+Sitemap: ${PUBLIC_URL}sitemap.xml
+EOF
+
+cat > pages/sitemap.xml <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url><loc>${PUBLIC_URL}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+    <url><loc>${PUBLIC_URL}go/games</loc><changefreq>always</changefreq><priority>0.95</priority></url>
+    <url><loc>${PUBLIC_URL}go/people</loc><changefreq>always</changefreq><priority>0.6</priority></url>
+    <url><loc>${PUBLIC_URL}go/groups</loc><changefreq>always</changefreq><priority>0.6</priority></url>
+</urlset>
+EOF
+
 # These files use Java properties semantics. Appending overrides the stale legacy
 # defaults while keeping the original distribution file available for reference.
 cat >> "$PROPS" <<EOF
