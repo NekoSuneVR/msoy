@@ -32,10 +32,7 @@ services:
       MSOY_MEDIA_URL: ${MSOY_MEDIA_URL:-http://localhost:8080/media/}
       MSOY_STATIC_MEDIA_URL: ${MSOY_STATIC_MEDIA_URL:-http://localhost:8080/media/static/}
       MSOY_BILLING_URL: ${MSOY_BILLING_URL:-http://localhost:8080/}
-    volumes:
-      - msoy-maven:/root/.m2
     command: build
 
 volumes:
   msoy-postgres:
-  msoy-maven:
