@@ -4,6 +4,10 @@ set -euo pipefail
 M2_REPO="${HOME}/.m2/repository"
 ORTH_REPO="https://github.com/threerings/orth.git"
 ORTH_COMMIT="63ce1834dc65bdbee2be87c7a15ff3e70caf7ed6"
+NENYA_REPO="https://github.com/threerings/nenya.git"
+# Exact source state for Nenya 1.1: this is the parent of the commit that
+# changed the project version from 1.1 to 1.2-SNAPSHOT.
+NENYA_COMMIT="62c3c2c31a239aecb3028501a81bace2c8fee8f9"
 WHIRLED_API_REPO="https://github.com/greyhavens/whirled-api.git"
 WHIRLED_API_COMMIT="98c15e4d33b4340ce0e9b84b0aca1dd1a38f8508"
 
@@ -69,6 +73,28 @@ install_orth() {
   rm -rf "$workdir"
 }
 
+install_nenya() {
+  local target_jar="${M2_REPO}/com/threerings/nenya/1.1/nenya-1.1.jar"
+  if [[ -f "$target_jar" ]]; then
+    return
+  fi
+
+  echo "Building com.threerings:nenya:1.1 from pinned exact release source..."
+  local workdir
+  workdir="$(mktemp -d)"
+
+  git clone -q --no-checkout "$NENYA_REPO" "$workdir/nenya"
+  git -C "$workdir/nenya" checkout -q "$NENYA_COMMIT"
+  mvn -q -f "$workdir/nenya/pom.xml" -DskipTests install
+
+  if [[ ! -f "$target_jar" ]]; then
+    echo "Nenya source build completed without producing ${target_jar}" >&2
+    exit 3
+  fi
+
+  rm -rf "$workdir"
+}
+
 install_whirled_code() {
   local target_jar="${M2_REPO}/com/threerings/whirled-code/1.1-SNAPSHOT/whirled-code-1.1-SNAPSHOT.jar"
   if [[ -f "$target_jar" ]]; then
@@ -99,9 +125,11 @@ install_whirled_code() {
 # The exact coordinates in MSOY's old POM disappeared with the original private
 # Three Rings Maven repository. Vilya 1.4 is from the same legacy API generation
 # and remains available from Central. Orth is rebuilt from its pinned 1.0 release
-# source and installed under the old 0.9 coordinate expected by MSOY. The MSOY
-# POM remains unchanged, so its explicit exclusions/version choices still control
-# the rest of the dependency graph.
+# source and installed under the old 0.9 coordinate expected by MSOY. Nenya 1.1
+# is rebuilt from its exact pre-1.2-SNAPSHOT source state because Central contains
+# Nenya 1.0 and 1.2 but no 1.1 artifact. The MSOY POM remains unchanged, so its
+# explicit exclusions/version choices still control the rest of the graph.
 install_alias_from_central com.threerings vilya 1.4 1.1
 install_orth
+install_nenya
 install_whirled_code
