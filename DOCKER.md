@@ -12,7 +12,47 @@ ghcr.io/nekosunevr/msoy
 
 Published tags include `latest` from the default branch, branch names, Git tags, and commit SHA tags.
 
-## Build locally
+## Pull from GitHub Container Registry
+
+```bash
+docker pull ghcr.io/nekosunevr/msoy:latest
+docker run --rm -it ghcr.io/nekosunevr/msoy:latest
+```
+
+The source tree required by Ant is baked into the image at `/opt/msoy`. The normal Compose deployment intentionally does **not** bind-mount the host directory over `/opt/msoy`; doing that from an incomplete deployment folder hides required files such as `etc/build_settings.properties.dist`.
+
+## Docker Compose using GHCR
+
+You only need the Compose file and optional `.env` for the normal GHCR deployment. Copy `.env.example` to `.env`, change the database password, then run:
+
+```bash
+docker compose pull
+docker compose up
+```
+
+Compose starts PostgreSQL and the MSOY builder using the complete source tree already included in `ghcr.io/nekosunevr/msoy`.
+
+To refresh after an image update:
+
+```bash
+docker compose down
+docker compose pull
+docker compose up --force-recreate
+```
+
+## Local source development
+
+Only use the development override when the current directory is a **complete clone** of this repository:
+
+```bash
+git clone https://github.com/NekoSuneVR/msoy.git
+cd msoy
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+`docker-compose.dev.yml` deliberately mounts the complete checkout at `/opt/msoy` so local source edits are immediately visible in the builder. Do not use that override from a folder containing only `docker-compose.yml`.
+
+## Build locally without Compose
 
 ```bash
 docker build -t msoy-builder .
@@ -32,23 +72,6 @@ docker run --rm -e MSOY_BUILD_TARGET=tests msoy-builder
 ```
 
 Full `distall` still requires the legacy Flex SDK expected by the original Ant build. Mount/provide that SDK before choosing `distall`.
-
-## Pull from GitHub Container Registry
-
-```bash
-docker pull ghcr.io/nekosunevr/msoy:latest
-docker run --rm -it ghcr.io/nekosunevr/msoy:latest
-```
-
-## Docker Compose
-
-Copy `.env.example` to `.env`, change the database password, then run:
-
-```bash
-docker compose up --build
-```
-
-Compose starts PostgreSQL and the MSOY builder.
 
 ## Endpoint configuration
 

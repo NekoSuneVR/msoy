@@ -16,8 +16,6 @@ services:
   builder:
     image: ghcr.io/nekosunevr/msoy:${MSOY_IMAGE_TAG:-latest}
     pull_policy: always
-    build:
-      context: .
     entrypoint: ["/usr/local/bin/msoy-entrypoint"]
     depends_on:
       postgres:
@@ -35,7 +33,6 @@ services:
       MSOY_STATIC_MEDIA_URL: ${MSOY_STATIC_MEDIA_URL:-http://localhost:8080/media/static/}
       MSOY_BILLING_URL: ${MSOY_BILLING_URL:-http://localhost:8080/}
     volumes:
-      - .:/opt/msoy
       - msoy-maven:/root/.m2
     command: build
 

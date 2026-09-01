@@ -3,6 +3,28 @@ set -euo pipefail
 
 cd /opt/msoy
 
+required_sources=(
+  build.xml
+  etc/build_settings.properties.dist
+  etc/msoy-server.conf.dist
+  etc/msoy-server.properties.dist
+  etc/burl-server.conf.dist
+  etc/burl-server.properties.dist
+)
+
+for required_source in "${required_sources[@]}"; do
+  if [[ ! -f "$required_source" ]]; then
+    cat >&2 <<EOF
+MSOY source tree is incomplete: missing /opt/msoy/$required_source
+
+The normal GHCR image already contains the full source tree. This usually means a host bind mount
+has replaced /opt/msoy with an incomplete folder. Remove any '.:/opt/msoy' volume from the normal
+Compose deployment, or use docker-compose.dev.yml only from a complete clone of the repository.
+EOF
+    exit 2
+  fi
+done
+
 TEST_DIR="etc/test"
 mkdir -p "$TEST_DIR" pages/media log run dist
 
