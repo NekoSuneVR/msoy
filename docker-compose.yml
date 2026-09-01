@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:13-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${MSOY_DB_NAME:-msoy}
+      POSTGRES_USER: ${MSOY_DB_USER:-msoy}
+      POSTGRES_PASSWORD: ${MSOY_DB_PASSWORD:-msoy}
+    command:
+      - postgres
+      - -c
+      - password_encryption=md5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MSOY_DB_USER:-msoy} -d ${MSOY_DB_NAME:-msoy}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - msoy-postgres:/var/lib/postgresql/data
+
+  msoy:
+    image: ghcr.io/nekosunevr/msoy:${MSOY_IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      MSOY_PUBLIC_URL: ${MSOY_PUBLIC_URL:-http://localhost:8080/}
+      MSOY_SERVER_HOST: ${MSOY_SERVER_HOST:-localhost}
+      MSOY_HTTP_PORT: 8080
+      MSOY_SERVER_PORTS: 47624
+      MSOY_SOCKET_POLICY_PORT: 47623
+      MSOY_DB_HOST: postgres
+      MSOY_DB_PORT: 5432
+      MSOY_DB_NAME: ${MSOY_DB_NAME:-msoy}
+      MSOY_DB_USER: ${MSOY_DB_USER:-msoy}
+      MSOY_DB_PASSWORD: ${MSOY_DB_PASSWORD:-msoy}
+      MSOY_JAVA_MEMORY: ${MSOY_JAVA_MEMORY:-512M}
+    ports:
+      - "${MSOY_HTTP_BIND_PORT:-8080}:8080"
+      - "${MSOY_GAME_BIND_PORT:-47624}:47624"
+      - "${MSOY_POLICY_BIND_PORT:-47623}:47623"
+    volumes:
+      - msoy-media:/opt/msoy/pages/media
+
+volumes:
+  msoy-postgres:
+  msoy-media:
