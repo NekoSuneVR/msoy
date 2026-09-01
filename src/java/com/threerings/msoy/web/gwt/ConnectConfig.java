@@ -26,7 +26,8 @@ public class ConnectConfig
      */
     public String getURL (String path)
     {
-        String port = (httpPort == 80) ? "" : (":" + httpPort);
-        return "http://" + server + port + path;
+        boolean secure = (httpPort == 443);
+        String port = (httpPort == 80 || secure) ? "" : (":" + httpPort);
+        return (secure ? "https://" : "http://") + server + port + path;
     }
 }
