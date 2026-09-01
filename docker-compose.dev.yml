@@ -5,4 +5,3 @@ services:
     pull_policy: build
     volumes:
       - .:/opt/msoy
-      - msoy-maven:/root/.m2
