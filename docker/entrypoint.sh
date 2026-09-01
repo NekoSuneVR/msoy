@@ -107,12 +107,37 @@ fi
 set_property "$BURL_PROPS" db.default.username "$MSOY_DB_USER"
 set_property "$BURL_PROPS" db.default.password "$MSOY_DB_PASSWORD"
 
+bootstrap_java_dependencies() {
+  local missing=0
+  local dependency
+  local required_dependencies=(
+    "dist/lib/gwt-user-2.6.1.jar"
+    "dist/lib/guava-14.0.1.jar"
+    "dist/lib/samskivert-1.5.jar"
+    "dist/lib/gwt-utils-1.7.1.jar"
+    "dist/lib/orth-0.9.jar"
+  )
+
+  for dependency in "${required_dependencies[@]}"; do
+    if [[ ! -f "$dependency" ]]; then
+      missing=1
+      break
+    fi
+  done
+
+  if [[ "$missing" -eq 1 ]]; then
+    echo "MSOY Java dependencies are missing; resolving Maven dependencies first..."
+    ant mavendeps
+  fi
+}
+
 command="${1:-build}"
 shift || true
 
 case "$command" in
   build)
     target="${MSOY_BUILD_TARGET:-compile}"
+    bootstrap_java_dependencies
     echo "Building MSOY with Ant target: ${target}"
     exec ant "$target" "$@"
     ;;
