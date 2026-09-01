@@ -5,6 +5,11 @@ FROM eclipse-temurin:8-jdk-jammy AS builder
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG WHIRLED_API_COMMIT=98c15e4d33b4340ce0e9b84b0aca1dd1a38f8508
+# The legacy GWT client embeds these values while it is compiled. Override them
+# when building an image intended for a hostname other than localhost.
+ARG MSOY_PUBLIC_URL=http://localhost:8080/
+ARG MSOY_SERVER_HOST=localhost
+ARG MSOY_BILLING_URL=http://localhost:8080/billing/
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ant ca-certificates git gzip maven \
@@ -22,7 +27,10 @@ RUN git clone https://github.com/greyhavens/whirled-api.git /tmp/whirled-api \
     && mvn -q -f /tmp/whirled-api/core/pom.xml -DskipTests install
 
 RUN chmod +x docker/prepare-config.sh \
-    && ./docker/prepare-config.sh etc/test
+    && MSOY_PUBLIC_URL="$MSOY_PUBLIC_URL" \
+       MSOY_SERVER_HOST="$MSOY_SERVER_HOST" \
+       MSOY_BILLING_URL="$MSOY_BILLING_URL" \
+       ./docker/prepare-config.sh etc/test
 
 # Build the Java server plus its GWT web application. The historic distall
 # target additionally requires Flex 3, Flash clients and a native Thane VM;
