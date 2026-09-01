@@ -75,16 +75,21 @@ install_whirled_code() {
     return
   fi
 
-  echo "Building com.threerings:whirled-code:1.1-SNAPSHOT from pinned Grey Havens source..."
+  echo "Building com.threerings:whirled-code:1.1-SNAPSHOT from pinned Grey Havens Java API source..."
   local workdir
   workdir="$(mktemp -d)"
 
   git clone -q --no-checkout "$WHIRLED_API_REPO" "$workdir/whirled-api"
   git -C "$workdir/whirled-api" checkout -q "$WHIRLED_API_COMMIT"
-  mvn -q -f "$workdir/whirled-api/pom.xml" -DskipTests -pl core -am install
+
+  # Build the Java module directly. Building from the repository root makes Maven
+  # parse the unrelated aslib/thanelib Flex modules, which require retired
+  # FlexMojos, Adobe SWCs and scala-tools repositories. The core POM inherits the
+  # local parent via ../pom.xml but does not enter that obsolete reactor.
+  mvn -q -f "$workdir/whirled-api/core/pom.xml" -DskipTests install
 
   if [[ ! -f "$target_jar" ]]; then
-    echo "Whirled API build completed without producing ${target_jar}" >&2
+    echo "Whirled Java API build completed without producing ${target_jar}" >&2
     exit 3
   fi
 
