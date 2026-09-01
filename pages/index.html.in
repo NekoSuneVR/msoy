@@ -7,31 +7,14 @@
   <meta content="games,friends,explore,chat,shop,create,whirled" name="keywords"/>
   <link rel="stylesheet" href="/themed/css/global.css?themeId=0" type="text/css"/>
   <link rel="shortcut icon" href="/favicon.ico" type="image/vnd.microsoft.icon"/>
-
-  <script type="text/javascript">
-      var _gaq = [];
-      _gaq.push(["_setAccount", "@GA_ACCOUNT@"]);
-      _gaq.push(["_trackPageview"]);
-
-      (function() {
-          var ga = document.createElement("script");
-          ga.type = "text/javascript";
-          ga.async = true;
-          ga.src = ("https:" == document.location.protocol ? "https://ssl" : "http://www") + ".google-analytics.com/ga.js";
-          var s = document.getElementsByTagName("script")[0];
-          s.parentNode.insertBefore(ga, s);
-      })();
-  </script>
 </head>
 
 <body>
   <div id="loading" class="loading">
       <h2>Whirled is loading...</h2>
       <noscript><blockquote>
-          Whirled requires JavaScript to operate. Please turn it on in your browser.
-          <p>If you would like more information, please read our instructions on
-          <a href="http://wiki.whirled.com/JavaScript">how to turn on JavaScript</a>.
-          <a href="/go/games">Learn about our games</a>.
+          Whirled requires JavaScript to operate. Please enable JavaScript in your browser.
+          <p><a href="/go/games">Learn about our games</a>.</p>
       </blockquote></noscript>
   </div>
 
