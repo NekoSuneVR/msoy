@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:14-alpine
+    environment:
+      POSTGRES_DB: ${MSOY_DB_NAME:-msoy}
+      POSTGRES_USER: ${MSOY_DB_USER:-msoy}
+      POSTGRES_PASSWORD: ${MSOY_DB_PASSWORD:-msoy}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${MSOY_DB_USER:-msoy} -d ${MSOY_DB_NAME:-msoy}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    volumes:
+      - msoy-postgres:/var/lib/postgresql/data
+
+  builder:
+    image: ghcr.io/nekosunevr/msoy:${MSOY_IMAGE_TAG:-latest}
+    build:
+      context: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      MSOY_BUILD_TARGET: ${MSOY_BUILD_TARGET:-compile}
+      MSOY_SERVER_URL: ${MSOY_SERVER_URL:-http://localhost:8080/}
+      MSOY_SERVER_HOST: ${MSOY_SERVER_HOST:-localhost}
+      MSOY_DB_HOST: postgres
+      MSOY_DB_PORT: 5432
+      MSOY_DB_NAME: ${MSOY_DB_NAME:-msoy}
+      MSOY_DB_USER: ${MSOY_DB_USER:-msoy}
+      MSOY_DB_PASSWORD: ${MSOY_DB_PASSWORD:-msoy}
+      MSOY_MEDIA_URL: ${MSOY_MEDIA_URL:-http://localhost:8080/media/}
+      MSOY_STATIC_MEDIA_URL: ${MSOY_STATIC_MEDIA_URL:-http://localhost:8080/media/static/}
+      MSOY_BILLING_URL: ${MSOY_BILLING_URL:-http://localhost:8080/}
+    volumes:
+      - .:/opt/msoy
+      - msoy-maven:/root/.m2
+    command: build
+
+volumes:
+  msoy-postgres:
+  msoy-maven:
