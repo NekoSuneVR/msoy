@@ -85,6 +85,14 @@ install_nenya() {
 
   git clone -q --no-checkout "$NENYA_REPO" "$workdir/nenya"
   git -C "$workdir/nenya" checkout -q "$NENYA_COMMIT"
+
+  # Nenya 1.1 used Maven's old dynamic RELEASE plugin version. Modern Maven
+  # rejects that marker while parsing the POM, before it can compile anything.
+  # Pin the period-correct AntRun 1.6 release in the temporary checkout only;
+  # the historical source and MSOY's own POM remain unchanged.
+  sed -i '/<artifactId>maven-antrun-plugin<\/artifactId>/{n;s#<version>RELEASE</version>#<version>1.6</version>#;}' \
+    "$workdir/nenya/pom.xml"
+
   mvn -q -f "$workdir/nenya/pom.xml" -DskipTests install
 
   if [[ ! -f "$target_jar" ]]; then
