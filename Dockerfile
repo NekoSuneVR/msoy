@@ -15,9 +15,13 @@ RUN apt-get update \
        gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep the container entrypoint outside /opt/msoy. docker-compose bind-mounts
-# the checkout over /opt/msoy, so anything needed to start the container must
-# live outside that mount point.
+# The original MSOY build uses Maven Ant Tasks and depends on old Three Rings
+# artifacts. Keep an explicit modern HTTPS Maven configuration in the image.
+RUN mkdir -p /root/.m2
+COPY docker/maven-settings.xml /root/.m2/settings.xml
+
+# Keep startup tooling outside /opt/msoy so the optional development source
+# bind mount cannot hide the entrypoint itself.
 COPY docker/entrypoint.sh /usr/local/bin/msoy-entrypoint
 RUN chmod 0755 /usr/local/bin/msoy-entrypoint
 
@@ -33,7 +37,7 @@ RUN chmod +x bin/* \
     && cp -n etc/burl-server.properties.dist etc/test/burl-server.properties \
     && test -x /usr/local/bin/msoy-entrypoint
 
-ENV MSOY_BUILD_TARGET=compile \
+ENV MSOY_BUILD_TARGET=${MSOY_BUILD_TARGET} \
     MSOY_SERVER_URL=http://localhost:8080/ \
     MSOY_SERVER_HOST=localhost \
     MSOY_HTTP_PORT=8080 \
@@ -47,6 +51,10 @@ ENV MSOY_BUILD_TARGET=compile \
     MSOY_MEDIA_URL=http://localhost:8080/media/ \
     MSOY_STATIC_MEDIA_URL=http://localhost:8080/media/static/ \
     MSOY_BILLING_URL=http://localhost:8080/
+
+# Do not publish a builder image that has never resolved its Java classpath.
+# This runs the same dependency bootstrap and Java compile path used at runtime.
+RUN /usr/local/bin/msoy-entrypoint build
 
 EXPOSE 8080 47623 47624
 
