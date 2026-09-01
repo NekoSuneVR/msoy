@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+*.iml
+log/
+run/
+dist/
+*.log
+.DS_Store
+Thumbs.db
