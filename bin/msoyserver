@@ -1,31 +1,31 @@
 #!/bin/sh
 #
-# $Id$
-#
-# Command line launcher for the Msoy development server
+# Command line launcher for the Msoy development server.
 
-MSOY_HOME=`dirname $0`
-MSOY_HOME=`cd $MSOY_HOME/.. ; pwd`
+set -eu
 
-NODE="msoy1"
-HOSTNAME=`hostname`
+MSOY_HOME=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+
+NODE=${MSOY_NODE:-msoy1}
+HOSTNAME=${MSOY_HOSTNAME:-$(hostname)}
+DEPOT_PG83=${DEPOT_PG83:-false}
+SKIP_CHECK_REFERRER=${MSOY_SKIP_CHECK_REFERRER:-true}
 
 JAVA_ARGS="-Djava.awt.headless=true \
-           -Dskip_check_referrer=true \
+           -Dskip_check_referrer=$SKIP_CHECK_REFERRER \
            -Dcom.samskivert.depot.verifyschema=true \
-           -Dcom.samskivert.depot.pg83=true \
+           -Dcom.samskivert.depot.pg83=$DEPOT_PG83 \
            -Dlog4j.configuration=log4j.properties \
            -Dorg.apache.commons.logging.Log=org.apache.commons.logging.impl.Log4JLogger \
            -Dehcache.disk.store.dir=world"
-           # -Dcom.samskivert.depot.debug=true \
 
-# parse our arguments
-while [ ! -z "$1" ]; do
+# Parse our arguments. Options are passed through to the Java launcher; a bare
+# argument selects the Presents node name for compatibility with the old script.
+while [ "$#" -gt 0 ]; do
     case "$1" in
         -*)
             JAVA_ARGS="$JAVA_ARGS $1"
             ;;
-
         *)
             NODE="$1"
             ;;
@@ -34,5 +34,6 @@ while [ ! -z "$1" ]; do
 done
 
 CLASS=com.threerings.msoy.server.MsoyServer
-`dirname $0`/msoyjava msoy -ea -server -Dhostname=$HOSTNAME -Dnode=$NODE -Dis_node=true \
-    $JAVA_ARGS $CLASS $*
+exec "$MSOY_HOME/bin/msoyjava" msoy -ea -server \
+    -Dhostname="$HOSTNAME" -Dnode="$NODE" -Dis_node=true \
+    $JAVA_ARGS "$CLASS"
