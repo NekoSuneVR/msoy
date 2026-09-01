@@ -20,10 +20,11 @@ RUN apt-get update \
 RUN mkdir -p /root/.m2
 COPY docker/maven-settings.xml /root/.m2/settings.xml
 
-# Keep startup tooling outside /opt/msoy so the optional development source
-# bind mount cannot hide the entrypoint itself.
+# Keep startup/build tooling outside /opt/msoy so the optional development
+# source bind mount cannot hide these scripts.
 COPY docker/entrypoint.sh /usr/local/bin/msoy-entrypoint
-RUN chmod 0755 /usr/local/bin/msoy-entrypoint
+COPY docker/bootstrap-legacy-artifacts.sh /usr/local/bin/msoy-bootstrap-legacy-artifacts
+RUN chmod 0755 /usr/local/bin/msoy-entrypoint /usr/local/bin/msoy-bootstrap-legacy-artifacts
 
 WORKDIR /opt/msoy
 COPY . .
@@ -35,7 +36,8 @@ RUN chmod +x bin/* \
     && cp -n etc/msoy-server.properties.dist etc/test/msoy-server.properties \
     && cp -n etc/burl-server.conf.dist etc/test/burl-server.conf \
     && cp -n etc/burl-server.properties.dist etc/test/burl-server.properties \
-    && test -x /usr/local/bin/msoy-entrypoint
+    && test -x /usr/local/bin/msoy-entrypoint \
+    && test -x /usr/local/bin/msoy-bootstrap-legacy-artifacts
 
 ENV MSOY_BUILD_TARGET=${MSOY_BUILD_TARGET} \
     MSOY_SERVER_URL=http://localhost:8080/ \
@@ -52,9 +54,11 @@ ENV MSOY_BUILD_TARGET=${MSOY_BUILD_TARGET} \
     MSOY_STATIC_MEDIA_URL=http://localhost:8080/media/static/ \
     MSOY_BILLING_URL=http://localhost:8080/
 
-# Do not publish a builder image that has never resolved its Java classpath.
-# This runs the same dependency bootstrap and Java compile path used at runtime.
-RUN /usr/local/bin/msoy-entrypoint build
+# Restore coordinates that disappeared with Three Rings' original private Maven
+# infrastructure, then run the real clean Java build. GHCR must not publish an
+# image that has never resolved and compiled the MSOY classpath.
+RUN /usr/local/bin/msoy-bootstrap-legacy-artifacts \
+    && /usr/local/bin/msoy-entrypoint build
 
 EXPOSE 8080 47623 47624
 
