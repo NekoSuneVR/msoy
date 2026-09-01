@@ -24,10 +24,10 @@ RUN git clone https://github.com/greyhavens/whirled-api.git /tmp/whirled-api \
 RUN chmod +x docker/prepare-config.sh \
     && ./docker/prepare-config.sh etc/test
 
-# Build the maintainable Java server distribution. The historic distall target
-# additionally requires Flex 3, Flash clients and a native Thane VM; those are
-# intentionally not required for the server container.
-RUN ant -Ddeployment=test mavendeps dist
+# Build the Java server plus its GWT web application. The historic distall
+# target additionally requires Flex 3, Flash clients and a native Thane VM;
+# those obsolete components are intentionally not required by this image.
+RUN ant -Ddeployment=test mavendeps dist gclients
 
 FROM eclipse-temurin:8-jre-jammy AS runtime
 
