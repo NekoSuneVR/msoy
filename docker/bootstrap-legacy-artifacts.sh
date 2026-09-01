@@ -10,6 +10,8 @@ NENYA_REPO="https://github.com/threerings/nenya.git"
 NENYA_COMMIT="62c3c2c31a239aecb3028501a81bace2c8fee8f9"
 WHIRLED_API_REPO="https://github.com/greyhavens/whirled-api.git"
 WHIRLED_API_COMMIT="98c15e4d33b4340ce0e9b84b0aca1dd1a38f8508"
+LWJGL_REPO="https://github.com/LWJGL/lwjgl.git"
+LWJGL_26_COMMIT="67307a702399537465be003bc67d2cc2549ce61b"
 LWJGL_26_URL="https://raw.githubusercontent.com/GeoJosh/geospace-repo/master/org/lwjgl/lwjgl/2.6/lwjgl-2.6.jar"
 LWJGL_26_SHA1="02b8c8c496d5f858a3ba72793e419fb66ae624e8"
 
@@ -74,6 +76,46 @@ install_legacy_lwjgl() {
   rm -rf "$workdir"
 }
 
+install_legacy_lwjgl_util() {
+  local target_jar="${M2_REPO}/org/lwjgl/lwjgl_util/2.6/lwjgl_util-2.6.jar"
+  local core_jar="${M2_REPO}/org/lwjgl/lwjgl/2.6/lwjgl-2.6.jar"
+  if [[ -f "$target_jar" ]]; then
+    return
+  fi
+  if [[ ! -f "$core_jar" ]]; then
+    echo "LWJGL core must be installed before lwjgl_util: ${core_jar}" >&2
+    exit 3
+  fi
+
+  echo "Rebuilding org.lwjgl:lwjgl_util:2.6 from the exact LWJGL 2.6 source tag..."
+  local workdir util_jar
+  workdir="$(mktemp -d)"
+  util_jar="$workdir/lwjgl_util-2.6.jar"
+
+  git clone -q --no-checkout "$LWJGL_REPO" "$workdir/lwjgl"
+  git -C "$workdir/lwjgl" checkout -q "$LWJGL_26_COMMIT"
+  mkdir -p "$workdir/classes"
+
+  # Nenya 1.1 only consumes org.lwjgl.util.WaveData. Compile that exact class
+  # from LWJGL's 2.6 tag against the checksum-pinned 2.6 core jar, avoiding the
+  # obsolete full LWJGL native/generator build while preserving the exact API.
+  javac -source 1.5 -target 1.5 \
+    -cp "$core_jar" \
+    -d "$workdir/classes" \
+    "$workdir/lwjgl/src/java/org/lwjgl/util/WaveData.java"
+  jar cf "$util_jar" -C "$workdir/classes" org/lwjgl/util/WaveData.class
+
+  mvn -q install:install-file \
+    -Dfile="$util_jar" \
+    -DgroupId=org.lwjgl \
+    -DartifactId=lwjgl_util \
+    -Dversion=2.6 \
+    -Dpackaging=jar \
+    -DgeneratePom=true
+
+  rm -rf "$workdir"
+}
+
 install_orth() {
   local target_jar="${M2_REPO}/com/threerings/orth/0.9/orth-0.9.jar"
   if [[ -f "$target_jar" ]]; then
@@ -112,10 +154,9 @@ install_nenya() {
   fi
 
   echo "Building com.threerings:nenya:1.1 from pinned exact release source..."
-  local workdir pom patched_pom
+  local workdir pom
   workdir="$(mktemp -d)"
   pom="$workdir/nenya/pom.xml"
-  patched_pom="$workdir/nenya/pom.xml.patched"
 
   git clone -q --no-checkout "$NENYA_REPO" "$workdir/nenya"
   git -C "$workdir/nenya" checkout -q "$NENYA_COMMIT"
@@ -124,24 +165,6 @@ install_nenya() {
   # rejects that marker while parsing the POM, before it can compile anything.
   # Pin the period-correct AntRun 1.6 release in the temporary checkout only.
   sed -i '/<artifactId>maven-antrun-plugin<\/artifactId>/{n;s#<version>RELEASE</version>#<version>1.6</version>#;}' "$pom"
-
-  # lwjgl_util was declared optional but Nenya has no org.lwjgl.util imports.
-  # Its historical repository is gone, so omit only that unused optional block.
-  awk '
-    BEGIN { in_dep=0; block="" }
-    /<dependency>/ && !in_dep { in_dep=1; block=$0 ORS; next }
-    in_dep {
-      block=block $0 ORS
-      if (/<\/dependency>/) {
-        if (block !~ /<artifactId>lwjgl_util<\/artifactId>/) printf "%s", block
-        in_dep=0
-        block=""
-      }
-      next
-    }
-    { print }
-  ' "$pom" > "$patched_pom"
-  mv "$patched_pom" "$pom"
 
   mvn -q -f "$pom" -DskipTests install
 
@@ -180,8 +203,9 @@ install_whirled_code() {
   rm -rf "$workdir"
 }
 
-# Restore the exact binary coordinate Nenya needs before its old POM is resolved.
+# Restore the exact binary coordinates Nenya needs before its old POM is resolved.
 install_legacy_lwjgl
+install_legacy_lwjgl_util
 
 # The exact coordinates in MSOY's old POM disappeared with the original private
 # Three Rings Maven repository. Vilya 1.4 is from the same legacy API generation
