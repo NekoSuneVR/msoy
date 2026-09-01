@@ -1,0 +1,19 @@
+.git
+.git/**
+.idea
+*.iml
+.DS_Store
+
+dist
+log/*
+
+# Never bake a developer's local deployment credentials into an image.
+etc/test/build_settings.properties
+etc/test/burl-server.conf
+etc/test/burl-server.properties
+etc/test/msoy-server.conf
+etc/test/msoy-server.properties
+
+# Local environment files.
+.env
+.env.*
